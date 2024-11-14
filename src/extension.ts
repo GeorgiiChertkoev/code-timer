@@ -2,89 +2,81 @@ import * as vscode from 'vscode';
 
 let file_opening_time: Map<string, number> = new Map();
 let file_times_counter: Map<string, number> = new Map();
+let context : vscode.ExtensionContext;
 
+function make_pretty_time(seconds : number) {
+	let res = '';
+	const hours = Math.floor(seconds / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+	seconds = Math.floor(seconds % 60);
 
-
-
-export function activate(context: vscode.ExtensionContext) {
-	function get_file_times_counter() {
-		const file_times_counter_obj = context.globalState.get('file_times_counter', {} as { [key: string]: number });
-		return new Map<string, number>(Object.entries(file_times_counter_obj));
+	if (hours > 0) {
+		res += `${hours} h `;
 	}
-
-	function update_file_times_counter(file_times_counter : Map<string, number>) {
-		context.globalState.update('file_times_counter', Object.fromEntries(file_times_counter.entries()));
+	if (minutes > 0 || hours > 0) {
+		res += `${minutes} m `;
 	}
+	res += `${seconds} s`;
 
-	function make_pretty_time(seconds : number) {
-		let res = '';
-		const hours = Math.floor(seconds / 3600);
-		const minutes = Math.floor((seconds % 3600) / 60);
-		seconds = Math.floor(seconds % 60);
+	return res;
+}
 
-		if (hours > 0) {
-			res += `${hours} h `;
-		}
-		if (minutes > 0 || hours > 0) {
-			res += `${minutes} m `;
-		}
-		res += `${seconds} s`;
-
-		console.log(`res is ${res}`);
-
-		return res;
+function shorten_path(path : string, start_folders = 2, end_folders = 2, max_len = 50) {
+	let separator;
+	if (path.includes('\\')) {
+		separator = '\\';
+	} else if (path.includes('/')) {
+		separator = '/';
+	} else {
+		console.log(`unable to shorten path: ${path}`);
+		return path;
 	}
+	let splitted_path = path.split(separator);
+	if (splitted_path.length <= start_folders + end_folders) {
+		return path;
+	}
+	let shortened_path = [...splitted_path.slice(0, start_folders), '...', ...splitted_path.slice(-end_folders)].join(separator)
+	while (shortened_path.length >= max_len && (end_folders > 1 || start_folders > 0)) {
+		start_folders = Math.max(0, start_folders - 1);
+		end_folders = Math.max(1, end_folders - 1);
+		shortened_path = [...splitted_path.slice(0, start_folders), '...', ...splitted_path.slice(-end_folders)].join(separator)
+	}
+	return shortened_path;
+}
+function get_file_times_counter() {
+	return new Map<string, number>(Object.entries(
+		context.globalState.get('file_times_counter', {} as { [key: string]: number })));
+}
 
-	
-	console.log('File Time Tracker is now active');
-	vscode.window.showInformationMessage("File Time Tracker is now active")
+function update_file_times_counter(file_times_counter : Map<string, number>) {
 	context.globalState.update('file_times_counter', Object.fromEntries(file_times_counter.entries()));
-
+}
 	
-	const disposable = vscode.commands.registerCommand('code-timer.showFileTimes', () => {
-		const stored_time_spent = context.globalState.get('file_times_counter')!;
-		let timeReport: string[] = [];
-		for (const [filePath, time] of Object.entries(stored_time_spent).sort()) {
-			timeReport.push(`${filePath}: ${make_pretty_time(time)}`);
+function start_file_timer(filePath: string) {
+	console.log(`start_file_timer called with filePath=${filePath}`);
+
+	if (!file_opening_time.has(filePath)) {
+		file_opening_time.set(filePath, Date.now());
+	}
+}
+	
+function update_time_on_files(filePath?: string) {
+	console.log(`update_time_on_files called with filePath=${filePath}`);
+
+	if (filePath === undefined) {
+		for (const [filePath, time] of file_opening_time.entries()) {
+			update_time_on_files(filePath);
+			start_file_timer(filePath);
 		}
-		vscode.window.showQuickPick(timeReport);
-    });
-	context.subscriptions.push(disposable);
-
-	
-	vscode.workspace.onDidOpenTextDocument((document: vscode.TextDocument) => {
-        const filePath = document.uri.fsPath;
-        if (!file_opening_time.has(filePath)) {
-			file_opening_time.set(filePath, Date.now());
-			vscode.window.showInformationMessage("Wrote opening time")
-        }
-    });
-	
-	vscode.workspace.onDidCloseTextDocument((document: vscode.TextDocument) => {
-	// vscode.window.onDidChangeVisibleTextEditors((document: any) => {
-		// if (typeof document == undefined) {
-		// 	vscode.window.showErrorMessage("Unable to access current TextEditor")
-		// 	return;
-		// }
-		// document = document.document;
-
-        const filePath = document.uri.fsPath;
-        const openTime = file_opening_time.get(filePath);
+	} else {
+		const openTime = file_opening_time.get(filePath);
 		
-        if (openTime) {
+		if (openTime) {
 			const ms_passed = Date.now() - openTime;
 			const seconds_passed = Math.round(ms_passed / 1000);
 			if (seconds_passed < 1) {
 				return;
 			}
-            // console.log(`File: ${filePath} was open for ${ms_passed}ms`);
-            // console.log(`File: ${filePath} was open for ${seconds_passed} secs`);
-			
-            // You can store this data in globalState or workspaceState for persistence
-            // const timeSpent = context.globalState.get('fileTimeSpent', {} as { [key: string]: number });
-            // let file_times_counter = context.globalState.get<Map<string, number>>('file_times_counter')!;
-			
-			// const file_times_counter_obj = context.globalState.get('file_times_counter', {} as { [key: string]: number });
 			let file_times_counter = get_file_times_counter();
 			
 			let value = 0;
@@ -92,30 +84,94 @@ export function activate(context: vscode.ExtensionContext) {
 				value = file_times_counter.get(filePath)!;
 			}
 			
-            file_times_counter.set(filePath, value + seconds_passed);
+			file_times_counter.set(filePath, value + seconds_passed);
+			update_file_times_counter(file_times_counter);				
+			file_opening_time.delete(filePath);
 			
-            // context.globalState.update('fileTimeSpent', timeSpent);
-			// const file_times_counter = Object.fromEntries(file_times_counter);
-			// let file_times_counter = new Map<string, number>(Object.en	tries(storedTimeSpent));
-			// const storedTimeSpent = context.globalState.get('file_times_counter', {} as { [key: string]: number });
-            // context.globalState.update('file_times_counter', file_times_counter);
+			return file_times_counter.get(filePath);
+		}
+	}
+}
 
-			update_file_times_counter(file_times_counter);
-			vscode.window.showInformationMessage(`file ${filePath} was open for 
-				${make_pretty_time(file_times_counter.get(filePath)!)}`);
-			console.log((`Spend on ${filePath} ${file_times_counter.get(filePath)!} seconds`));
-        }
+function show_file_times() {
+	console.log('showFileTimes called');
+	update_time_on_files();
+	
+	const stored_time_spent = context.globalState.get('file_times_counter')!;
+	let timeReport: string[] = [];
+	for (const [filePath, time] of Object.entries(stored_time_spent).sort((a, b) => b[1] - a[1])) {
+		timeReport.push(`${shorten_path(filePath)}: ${make_pretty_time(time)}`);
+	}
+	vscode.window.showQuickPick(timeReport);
+}
 
-        file_opening_time.delete(filePath);
+function delete_file_time(file_path : string) {
+	let file_times_counter = get_file_times_counter();
+	file_times_counter.delete(file_path);
+	update_file_times_counter(file_opening_time)
+}
+
+function erase_one_file_time() {
+
+	update_time_on_files();
+	const stored_time_spent = context.globalState.get('file_times_counter')!;
+	let files: vscode.QuickPickItem[] = [];
+	for (const [filePath, time] of Object.entries(stored_time_spent).sort()) {
+		if (time != 0) {
+			files.push({
+				label: `${shorten_path(filePath)}: ${make_pretty_time(time)}`, 
+				description: filePath});
+		}
+	}
+	// const options = vscode.window.createQuickPick();
+	// options.items = files;
+	// options.placeholder = 'Select a file to clear its time';
+	vscode.window.showQuickPick(files, {
+		placeHolder: 'Select a file to clear its time',
+		canPickMany: true
+	}).then((selection) => {
+		if (selection) {
+			for (const i of selection) {
+				console.log(i.description);
+			}
+		}
+	});
+	// options.show();
+}
+
+function erase_all_times() {
+	// update_time_on_files();
+
+}
+
+
+export function activate(local_context: vscode.ExtensionContext) {
+	context = local_context;
+
+	console.log('File Time Tracker is now active');
+	vscode.window.showInformationMessage("File Time Tracker is now active")
+	context.globalState.update('file_times_counter', Object.fromEntries(file_times_counter.entries()));
+	
+	vscode.workspace.onDidOpenTextDocument((document: vscode.TextDocument) => {
+		start_file_timer(document.uri.fsPath);
     });
 	
+	vscode.workspace.onDidCloseTextDocument((document: vscode.TextDocument) => {
+		const time = update_time_on_files(document.uri.fsPath);
+		if (time) {
+			vscode.window.showInformationMessage(
+				`${shorten_path(document.uri.fsPath, 2, 2, 30)} was open for ${make_pretty_time(time)}`)
+		}
+	});
 	
-	// const disposable = vscode.commands.registerCommand('code-timer.helloWorld', () => {
-		// vscode.window.showInformationMessage('Hello World from code-timer Vs Code!');
-	// });
+	let disposable = vscode.commands.registerCommand('code-timer.showFileTimes', show_file_times);
+	context.subscriptions.push(disposable);
 
-	// context.subscriptions.push(disposable);
+	disposable = vscode.commands.registerCommand('code-timer.eraseOneFileTime', erase_one_file_time);
+	context.subscriptions.push(disposable);
 
+	disposable = vscode.commands.registerCommand('code-timer.eraseAllTimes', erase_all_times);
+	context.subscriptions.push(disposable);
 }
 
 // export function deactivate() {

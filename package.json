@@ -18,7 +18,16 @@
       {
         "command": "code-timer.showFileTimes",
         "title": "Show Time Files Were Open"
+      }, 
+      {
+        "command": "code-timer.eraseAllTimes",
+        "title": "Clear all written time"
+      }, 
+      {
+        "command": "code-timer.eraseOneFileTime",
+        "title": "Clear one file time"
       }
+
     ]
   },
   "scripts": {
