@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-
 let file_opening_time: Map<string, number> = new Map();
 let file_times_counter: Map<string, number> = new Map();
 let context : vscode.ExtensionContext;
@@ -100,19 +99,21 @@ function show_file_times() {
 	const stored_time_spent = context.globalState.get('file_times_counter')!;
 	let timeReport: string[] = [];
 	for (const [filePath, time] of Object.entries(stored_time_spent).sort((a, b) => b[1] - a[1])) {
-		timeReport.push(`${shorten_path(filePath)}: ${make_pretty_time(time)}`);
+		if (time != 0) {
+			timeReport.push(`${shorten_path(filePath)}: ${make_pretty_time(time)}`);
+		}
 	}
 	vscode.window.showQuickPick(timeReport);
 }
 
 function delete_file_time(file_path : string) {
 	let file_times_counter = get_file_times_counter();
-	file_times_counter.delete(file_path);
-	update_file_times_counter(file_opening_time)
+	file_times_counter.set(file_path, 0);
+	file_opening_time.delete(file_path);
+	update_file_times_counter(file_times_counter)
 }
 
 function erase_one_file_time() {
-
 	update_time_on_files();
 	const stored_time_spent = context.globalState.get('file_times_counter')!;
 	let files: vscode.QuickPickItem[] = [];
@@ -123,25 +124,22 @@ function erase_one_file_time() {
 				description: filePath});
 		}
 	}
-	// const options = vscode.window.createQuickPick();
-	// options.items = files;
-	// options.placeholder = 'Select a file to clear its time';
+
 	vscode.window.showQuickPick(files, {
-		placeHolder: 'Select a file to clear its time',
-		canPickMany: true
+		placeHolder: 'Select a file to clear its time'
 	}).then((selection) => {
 		if (selection) {
-			for (const i of selection) {
-				console.log(i.description);
-			}
+			console.log(selection);
+			delete_file_time(selection.description!);
 		}
 	});
-	// options.show();
 }
 
 function erase_all_times() {
-	// update_time_on_files();
-
+	const stored_time_spent = context.globalState.get('file_times_counter')!;
+	for (const [filePath, time] of Object.entries(stored_time_spent).sort((a, b) => b[1] - a[1])) {
+		delete_file_time(filePath);
+	}
 }
 
 
@@ -174,6 +172,6 @@ export function activate(local_context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 }
 
-// export function deactivate() {
-
-// }
+export function deactivate() {
+	update_time_on_files();
+}
