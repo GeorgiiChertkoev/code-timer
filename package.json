@@ -2,9 +2,13 @@
   "name": "code-timer",
   "displayName": "code-timer",
   "description": "counts time you spend on file",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "engines": {
     "vscode": "^1.91.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GeorgiiChertkoev/code-timer"
   },
   "categories": [
     "Other"
@@ -39,7 +43,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.95.0",
+    "@types/vscode": "^1.91.1",
     "@types/mocha": "^10.0.9",
     "@types/node": "20.x",
     "@typescript-eslint/eslint-plugin": "^8.10.0",
