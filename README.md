@@ -11,7 +11,7 @@ Via command "Show Time Files Were Open" you can see time each file was open
 
 
 Alo you can delete one file time via "Clear one file time" or all files time with "Clear all written time"
-![clearing example](images\clearing-time-example.gif)
+![clearing example](images/clearing-time-example.gif)
 
 
 ## Requirements
