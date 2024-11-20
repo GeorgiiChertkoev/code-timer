@@ -1,4 +1,4 @@
-# files-timer README
+# code-timer README
 
 This extension can count time each file was open
 
@@ -19,3 +19,6 @@ Alo you can delete one file time via "Clear one file time" or all files time wit
 vscode version >= 1.91.1
 
 **Enjoy!**
+
+
+Made by Chertkoev Georgii (M3101) student at ITMO university
