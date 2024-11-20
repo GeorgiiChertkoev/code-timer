@@ -2,6 +2,8 @@
 
 This extension can count time each file was open
 
+https://marketplace.visualstudio.com/items?itemName=geochert.code-timer
+
 ## Features
 Time will start counting when you *open* file
 
