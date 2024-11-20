@@ -1,8 +1,10 @@
 {
   "name": "code-timer",
-  "displayName": "code-timer",
+  "displayName": "files-timer",
   "description": "counts time you spend on file",
-  "version": "0.1.1",
+  "icon": "images/logo.png",
+  "version": "0.1.3",
+  "publisher": "geochert",
   "engines": {
     "vscode": "^1.91.1"
   },

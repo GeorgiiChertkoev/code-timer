@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 let file_opening_time: Map<string, number> = new Map();
-let file_times_counter: Map<string, number> = new Map();
 let context : vscode.ExtensionContext;
 
 function make_pretty_time(seconds : number) {
@@ -44,11 +43,11 @@ function shorten_path(path : string, start_folders = 2, end_folders = 2, max_len
 }
 function get_file_times_counter() {
 	return new Map<string, number>(Object.entries(
-		context.globalState.get('file_times_counter', {} as { [key: string]: number })));
+		context.workspaceState.get('file_times_counter', {} as { [key: string]: number })));
 }
 
 function update_file_times_counter(file_times_counter : Map<string, number>) {
-	context.globalState.update('file_times_counter', Object.fromEntries(file_times_counter.entries()));
+	context.workspaceState.update('file_times_counter', Object.fromEntries(file_times_counter.entries()));
 }
 	
 function start_file_timer(filePath: string) {
@@ -96,7 +95,7 @@ function show_file_times() {
 	console.log('showFileTimes called');
 	update_time_on_files();
 	
-	const stored_time_spent = context.globalState.get('file_times_counter')!;
+	const stored_time_spent = context.workspaceState.get('file_times_counter')!;
 	let timeReport: string[] = [];
 	for (const [filePath, time] of Object.entries(stored_time_spent).sort((a, b) => b[1] - a[1])) {
 		if (time != 0) {
@@ -115,7 +114,7 @@ function delete_file_time(file_path : string) {
 
 function erase_one_file_time() {
 	update_time_on_files();
-	const stored_time_spent = context.globalState.get('file_times_counter')!;
+	const stored_time_spent = context.workspaceState.get('file_times_counter')!;
 	let files: vscode.QuickPickItem[] = [];
 	for (const [filePath, time] of Object.entries(stored_time_spent).sort()) {
 		if (time != 0) {
@@ -136,7 +135,7 @@ function erase_one_file_time() {
 }
 
 function erase_all_times() {
-	const stored_time_spent = context.globalState.get('file_times_counter')!;
+	const stored_time_spent = context.workspaceState.get('file_times_counter')!;
 	for (const [filePath, time] of Object.entries(stored_time_spent).sort((a, b) => b[1] - a[1])) {
 		delete_file_time(filePath);
 	}
@@ -148,18 +147,26 @@ export function activate(local_context: vscode.ExtensionContext) {
 
 	console.log('File Time Tracker is now active');
 	vscode.window.showInformationMessage("File Time Tracker is now active")
-	context.globalState.update('file_times_counter', Object.fromEntries(file_times_counter.entries()));
-	
+
+    if (!context.workspaceState.get<Map<string, number>>('file_times_counter')) {
+        context.workspaceState.update('file_times_counter', new Map<string, number>());
+	}
 	vscode.workspace.onDidOpenTextDocument((document: vscode.TextDocument) => {
+		// in future check options what files to ignore 
+		let re = /(?:\.([^.]+))?$/;
+		const file_extension = re.exec(document.uri.fsPath)
+		if (file_extension == undefined || file_extension[1] == "git") {
+			return;
+		}		
 		start_file_timer(document.uri.fsPath);
     });
 	
 	vscode.workspace.onDidCloseTextDocument((document: vscode.TextDocument) => {
 		const time = update_time_on_files(document.uri.fsPath);
-		if (time) {
-			vscode.window.showInformationMessage(
-				`${shorten_path(document.uri.fsPath, 2, 2, 30)} was open for ${make_pretty_time(time)}`)
-		}
+		// if (time) {
+			// vscode.window.showInformationMessage(
+				// `${shorten_path(document.uri.fsPath, 2, 2, 30)} was open for ${make_pretty_time(time)}`)
+		// }
 	});
 	
 	let disposable = vscode.commands.registerCommand('code-timer.showFileTimes', show_file_times);

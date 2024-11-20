@@ -1,4 +1,4 @@
-# code-timer README
+# files-timer README
 
 This extension can count time each file was open
 
