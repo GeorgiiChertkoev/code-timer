@@ -41,6 +41,7 @@ function shorten_path(path : string, start_folders = 2, end_folders = 2, max_len
 	}
 	return shortened_path;
 }
+
 function get_file_times_counter() {
 	return new Map<string, number>(Object.entries(
 		context.workspaceState.get('file_times_counter', {} as { [key: string]: number })));
@@ -63,6 +64,7 @@ function update_time_on_files(filePath?: string) {
 
 	if (filePath === undefined) {
 		for (const [filePath, time] of file_opening_time.entries()) {
+			console.log(filePath, time);
 			update_time_on_files(filePath);
 			start_file_timer(filePath);
 		}
@@ -116,7 +118,7 @@ function erase_one_file_time() {
 	update_time_on_files();
 	const stored_time_spent = context.workspaceState.get('file_times_counter')!;
 	let files: vscode.QuickPickItem[] = [];
-	for (const [filePath, time] of Object.entries(stored_time_spent).sort()) {
+	for (const [filePath, time] of Object.entries(stored_time_spent).sort((a, b) => b[1] - a[1])) {
 		if (time != 0) {
 			files.push({
 				label: `${shorten_path(filePath)}: ${make_pretty_time(time)}`, 
@@ -146,23 +148,32 @@ export function activate(local_context: vscode.ExtensionContext) {
 	context = local_context;
 
 	console.log('File Time Tracker is now active');
+	console.log('File Time Tracker is now active2');
 	vscode.window.showInformationMessage("File Time Tracker is now active")
 
     if (!context.workspaceState.get<Map<string, number>>('file_times_counter')) {
         context.workspaceState.update('file_times_counter', new Map<string, number>());
 	}
+
+	// file_opening_time.set("Workspace Time", Date.now());
+	start_file_timer("Workspace Time");
+	console.log(`${file_opening_time}`);
+	console.log("alright");
+	
+	
 	vscode.workspace.onDidOpenTextDocument((document: vscode.TextDocument) => {
 		// in future check options what files to ignore 
-		let re = /(?:\.([^.]+))?$/;
-		const file_extension = re.exec(document.uri.fsPath)
-		if (file_extension == undefined || file_extension[1] == "git") {
-			return;
-		}		
+		// let re = /(?:\.([^.]+))?$/;
+		// const file_extension = re.exec(document.uri.fsPath)
+		// if (file_extension == undefined || file_extension[1] == "git") {
+		// 	return;
+		// }
 		start_file_timer(document.uri.fsPath);
     });
 	
 	vscode.workspace.onDidCloseTextDocument((document: vscode.TextDocument) => {
-		const time = update_time_on_files(document.uri.fsPath);
+		const time = update_time_on_files();
+		// const time = update_time_on_files(document.uri.fsPath);
 		// if (time) {
 			// vscode.window.showInformationMessage(
 				// `${shorten_path(document.uri.fsPath, 2, 2, 30)} was open for ${make_pretty_time(time)}`)
