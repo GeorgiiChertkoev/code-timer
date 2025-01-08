@@ -108,6 +108,9 @@ function show_file_times() {
 }
 
 function delete_file_time(file_path : string) {
+	if (file_path == "Workspace Time") {
+		return;
+	}
 	let file_times_counter = get_file_times_counter();
 	file_times_counter.set(file_path, 0);
 	file_opening_time.delete(file_path);
@@ -148,18 +151,13 @@ export function activate(local_context: vscode.ExtensionContext) {
 	context = local_context;
 
 	console.log('File Time Tracker is now active');
-	console.log('File Time Tracker is now active2');
 	vscode.window.showInformationMessage("File Time Tracker is now active")
 
     if (!context.workspaceState.get<Map<string, number>>('file_times_counter')) {
         context.workspaceState.update('file_times_counter', new Map<string, number>());
 	}
 
-	// file_opening_time.set("Workspace Time", Date.now());
 	start_file_timer("Workspace Time");
-	console.log(`${file_opening_time}`);
-	console.log("alright");
-	
 	
 	vscode.workspace.onDidOpenTextDocument((document: vscode.TextDocument) => {
 		// in future check options what files to ignore 

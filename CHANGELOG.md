@@ -15,4 +15,7 @@ Temporary ignores all files without extension and .git files
 
 Added logo
 
+## version 0.1.4
+Removed ignoring files without extension or .git
 
+Added workspace timer that cannot be reset or cleared
