@@ -19,3 +19,6 @@ Added logo
 Removed ignoring files without extension or .git
 
 Added workspace timer that cannot be reset or cleared
+
+## version 0.1.5
+Workspace time is always on top

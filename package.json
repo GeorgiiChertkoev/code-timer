@@ -3,7 +3,7 @@
   "displayName": "files-timer",
   "description": "counts time you spend on file",
   "icon": "images/logo.png",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "geochert",
   "engines": {
     "vscode": "^1.91.1"

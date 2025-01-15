@@ -97,10 +97,13 @@ function show_file_times() {
 	console.log('showFileTimes called');
 	update_time_on_files();
 	
-	const stored_time_spent = context.workspaceState.get('file_times_counter')!;
+	// const stored_time_spent = context.workspaceState.get('file_times_counter')!;
+	const stored_time_spent = get_file_times_counter();
+
 	let timeReport: string[] = [];
+	timeReport.push(`Workspace Time : ${make_pretty_time(stored_time_spent.get("Workspace Time")!)}`);
 	for (const [filePath, time] of Object.entries(stored_time_spent).sort((a, b) => b[1] - a[1])) {
-		if (time != 0) {
+		if (time != 0 && filePath != "Workspace Time") {
 			timeReport.push(`${shorten_path(filePath)}: ${make_pretty_time(time)}`);
 		}
 	}
